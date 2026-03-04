@@ -1033,10 +1033,10 @@ function closeModalAndReturn(){
   }
 }
 
-// Auto-aggiornamento mappa ogni 15 minuti
+// Auto-aggiornamento mappa ogni minuto
 setInterval(function(){
   if(clienti.length>0) renderTZStrip();
-}, 15 * 60 * 1000);
+}, 60 * 1000);
 
 </script>
 </body>
