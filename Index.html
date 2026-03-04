@@ -219,7 +219,7 @@ body.dark .modal-overlay{background:rgba(0,0,0,.65);}
         <option value="flagged">No Backup</option>
         <option value="normal">Normali</option>
       </select>
-      <span class="count-badge" id="count-badge"></span>
+      <span class="count-badge" id="count-badge"></span><button class="btn btn-ghost btn-sm" id="btn-reset-filters" onclick="resetFilters()" style="display:none;gap:5px;" title="Elimina filtri">✕ Filtri</button>
       <select id="rows-select" onchange="ROWS=+this.value;currentPage=1;renderTable()" style="min-width:unset;padding:10px 10px;">
         <option value="20">20 righe</option>
         <option value="30">30 righe</option>
@@ -399,11 +399,22 @@ function bbadge(v){const l=(v||'').toLowerCase();if(l==='attivo')return'<span cl
 function sbadge(v){const l=(v||'').toLowerCase();if(l==='new')return'<span class="badge badge-blue">New</span>';if(l.includes('old'))return'<span class="badge badge-gray">Old</span>';if(l.includes('personalizzato'))return'<span class="badge badge-yellow">Custom</span>';return'<span class="badge badge-gray">'+(v||'?')+'</span>';}
 function gbadge(v){if(!v)return'';if(v==='Standard/Develop')return'<span class="badge badge-blue">S/Dev</span>';if(v==='Standard/Develop-Old')return'<span class="badge badge-gray">S/Dev-Old</span>';if(v.startsWith('Customers/'))return'<span class="badge badge-yellow" title="'+v+'">Custom</span>';if(v.startsWith('features/'))return'<span class="badge badge-green" title="'+v+'">Feature</span>';return'<span class="badge badge-gray">'+v+'</span>';}
 
+function resetFilters(){
+  document.getElementById('search-input').value='';
+  document.getElementById('filter-cloud').value='';
+  document.getElementById('filter-scada').value='';
+  document.getElementById('filter-flagged').value='';
+  document.getElementById('btn-reset-filters').style.display='none';
+  filterClienti();
+}
 function filterClienti(){
   const q=(document.getElementById('search-input').value||'').toLowerCase();
   const fc=(document.getElementById('filter-cloud').value||'').toLowerCase();
   const fs=document.getElementById('filter-scada').value;
   const ff=document.getElementById('filter-flagged').value;
+  const anyFilter=q||fc||fs||ff;
+  const rb=document.getElementById('btn-reset-filters');
+  if(rb) rb.style.display=anyFilter?'inline-flex':'none';
   filteredClienti=clienti.filter(c=>{
     if(!c.Nome)return false;
     if(q&&![c.Nome,c['Vers. Git'],c['Vers. Grafica SCADA'],c.Contatto,c.Sviluppi].join(' ').toLowerCase().includes(q))return false;
@@ -492,7 +503,11 @@ function buildFields(c){
     return'<div class="field'+(f.full?' full':'')+'"><label>'+f.l+'</label><input type="'+(f.type||'text')+'" name="'+f.k+'" value="'+v+'" placeholder="'+(f.placeholder||f.l)+'"></div>';
   }).join('');
 }
-function closeModal(){document.getElementById('modal-overlay').classList.remove('open');editingIdx=null;}
+function closeModal(){
+  if(_returnToTz!==null){ closeModalAndReturn(); return; }
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingIdx=null;
+}
 function saveModal(){
   if(userRole !== 'admin'){toast('Accesso negato: solo gli admin possono modificare i clienti','error');return;}
   const inputs=document.querySelectorAll('#modal-fields [name]');
@@ -945,10 +960,18 @@ function openTzModal(tz){
   var offC=lista.filter(function(c){return(c['Stato Backup su Cloud']||'').toLowerCase()==='disattivato';}).length;
 
   var rows=lista.map(function(c){
-    var s=(c['Stato Backup su Cloud']||'').toLowerCase();
-    var dot=s==='attivo'?'\uD83D\uDFE2':s==='disattivato'?'\uD83D\uDD34':'\uD83D\uDFE1';
+    var cloud2=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
+    var pc2=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
+    var dot;
+    if(cloud2.includes('attivo')||pc2.includes('attivo')){
+      dot='\uD83D\uDFE2'; // verde
+    } else if(cloud2.includes('disattivato')&&pc2.includes('disattivato')){
+      dot='<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7f1d1d;border:1px solid #450a0a;" title="Nessun backup"></span>'; // rosso scuro
+    } else {
+      dot='\uD83D\uDFE1'; // giallo incerto
+    }
     var idx=clienti.indexOf(c);
-    return '<tr onclick="closeTzModal();openModal('+idx+')" style="cursor:pointer;border-bottom:1px solid var(--border);" onmouseenter="this.style.background=\'var(--surface2)\'" onmouseleave="this.style.background=\'\'">'
+    return '<tr onclick="openModalFromTz('+idx+',\''+tz+'\')" style="cursor:pointer;border-bottom:1px solid var(--border);" onmouseenter="this.style.background=\'var(--surface2)\'" onmouseleave="this.style.background=\'\'">'
       +'<td style="padding:9px 16px;font-size:.9rem;">'+dot+'</td>'
       +'<td style="padding:9px 16px;font-family:DM Mono,monospace;font-size:.78rem;font-weight:600;">'+c.Nome+'</td>'
       +'<td style="padding:9px 16px;font-family:DM Mono,monospace;font-size:.72rem;color:var(--muted);">'+c['Vers. Git']+'</td>'
@@ -983,6 +1006,31 @@ function openTzModal(tz){
 function closeTzModal(){
   var el=document.getElementById('tz-modal-overlay');
   if(el) el.remove();
+}
+
+// Apre dettaglio cliente dalla lista TZ — al chiudi torna alla lista
+var _returnToTz=null;
+function openModalFromTz(idx, tz){
+  _returnToTz=tz;
+  // nascondi lista TZ senza rimuoverla
+  var overlay=document.getElementById('tz-modal-overlay');
+  if(overlay) overlay.style.display='none';
+  openModal(idx);
+}
+
+function closeModalAndReturn(){
+  var orig=document.getElementById('modal-overlay');
+  if(orig) orig.classList.remove('open');
+  editingIdx=null;
+  if(_returnToTz!==null){
+    var overlay=document.getElementById('tz-modal-overlay');
+    if(overlay){
+      overlay.style.display='flex';
+    } else {
+      openTzModal(_returnToTz);
+    }
+    _returnToTz=null;
+  }
 }
 
 // Auto-aggiornamento mappa ogni 15 minuti
