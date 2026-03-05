@@ -365,7 +365,7 @@ function renderDashboard(){
   const noBackupConPt=noBackup.filter(c=>(c['Stato Backup su Cloud']||'').toLowerCase()==='?' || (c['Stato Backup PC1 - PC2']||'').toLowerCase()==='?').length;
   const noBackupSenzaPt=noBackup.length-noBackupConPt;
   const okCount=clienti.length-noBackup.length;
-  drawPie(document.getElementById('chart-no-backup').getContext('2d'),{'Nessun backup':noBackupSenzaPt,'Stato sconosciuto (?)':noBackupConPt,'Almeno un backup':okCount},{'Nessun backup':'#dc2626','Stato sconosciuto (?)':'#f97316','Almeno un backup':'#059669'},pt);
+  drawPie(document.getElementById('chart-no-backup').getContext('2d'),{'Nessun backup attivo':noBackupSenzaPt,'Stato sconosciuto (?)':noBackupConPt,'Almeno un backup':okCount},{'Nessun backup attivo':'#dc2626','Stato sconosciuto (?)':'#f97316','Almeno un backup':'#059669'},pt);
   const gc={};clienti.forEach(c=>{let k=c['Vers. Git']||'N/D';if(k.startsWith('Customers/'))k='Customers/*';else if(k.startsWith('features/'))k='Features/*';gc[k]=(gc[k]||0)+1;});
   const gs=Object.entries(gc).sort((a,b)=>b[1]-a[1]);const mg=gs[0]?.[1]||1;
   const GC={'Standard/Develop':'#2563eb','Standard/Develop-Old':'#94a3b8','Customers/*':'#d97706','Features/*':'#059669'};
@@ -390,9 +390,16 @@ function drawPie(ctx,data,colors,textColor){
 }
 
 function isFlagged(c){
-  const cloud=(c['Stato Backup su Cloud']||'').toLowerCase();
-  const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase();
+  const cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
+  const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
   return cloud!=='attivo' && pc!=='attivo';
+}
+function backupStatus(c){
+  const cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
+  const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
+  if(cloud==='attivo'&&pc==='attivo') return 'green';
+  if(cloud==='disattivato'&&pc==='disattivato') return 'red';
+  return 'orange';
 }
 
 function bbadge(v){const l=(v||'').toLowerCase();if(l==='attivo')return'<span class="badge badge-green">attivo</span>';if(l==='disattivato')return'<span class="badge badge-red">disatt.</span>';if(l==='no pc2')return'<span class="badge badge-yellow">No PC2</span>';return'<span class="badge badge-gray">'+(v||'?')+'</span>';}
@@ -508,7 +515,7 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.remove('open');
   editingIdx=null;
 }
-function saveModal(){
+async function saveModal(){
   if(userRole !== 'admin'){toast('Accesso negato: solo gli admin possono modificare i clienti','error');return;}
   const inputs=document.querySelectorAll('#modal-fields [name]');
   const d={};inputs.forEach(el=>{if(el.name==='N. UPD')d[el.name]=parseInt(el.value)||0;else d[el.name]=el.value;});
@@ -518,11 +525,18 @@ function saveModal(){
   const ts=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
 
   if(editingIdx===null){
+    // Verifica duplicato locale
+    if(clienti.some(c=>c.Nome.trim().toLowerCase()===d.Nome.trim().toLowerCase())){
+      toast('Cliente "'+d.Nome+'" già esistente','error');return;
+    }
+    // Salva prima su DB, poi aggiorna locale e log solo se ok
+    const saveOk=await saveToSupabase(d, true);
+    if(!saveOk) return;
     clienti.push(d);
-    logs.unshift({'Data modifica':ts,'Cliente':d.Nome,'Campo':'Nuovo cliente','Nuovo Valore':d.Nome,'Motivo':'Aggiunto tramite app'});
+    const logEntry={'Data modifica':ts,'Cliente':d.Nome,'Campo':'Nuovo cliente','Nuovo Valore':d.Nome,'Motivo':'Aggiunto tramite app'};
+    logs.unshift(logEntry);
+    saveLogToSupabase(logEntry);
     toast('Cliente "'+d.Nome+'" aggiunto','success');
-    saveToSupabase(d, true);
-    saveLogToSupabase({'Data modifica':ts,'Cliente':d.Nome,'Campo':'Nuovo cliente','Nuovo Valore':d.Nome,'Motivo':'Aggiunto tramite app'});
   } else {
     const old=clienti[editingIdx];
     const campiMonitorati=['Vers. Git','Vers. Grafica SCADA','N. UPD','Stato Backup su Cloud','Stato Backup PC1 - PC2','orario attuale','Contatto','Sviluppi','DB','Nome'];
@@ -764,9 +778,11 @@ async function saveToSupabase(cliente, isNew) {
       const { error } = await sbClient.from('clienti').update(row).eq('nome', cliente.Nome);
       if (error) throw error;
     }
+    return true;
   } catch(e) {
     console.error("Supabase save:", e);
-    toast("Errore salvataggio DB", "error");
+    toast("Errore salvataggio DB: "+((e.message)||''), "error");
+    return false;
   }
 }
 
@@ -828,9 +844,9 @@ function renderTZStrip(){
     +'<div id="tz-dots-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></div>'
     +'</div>'
     +'<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;align-items:center;">'
-    +'<span style="font-family:DM Mono,monospace;font-size:.72rem;display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#4ade80;"></span>Almeno un backup attivo</span>'
-    +'<span style="font-family:DM Mono,monospace;font-size:.72rem;display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#f87171;"></span>Nessun backup</span>'
-    +'<span style="font-family:DM Mono,monospace;font-size:.72rem;display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#fbbf24;"></span>Stato incerto</span>'
+    +'<span style="font-family:DM Mono,monospace;font-size:.72rem;display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#4ade80;"></span>Entrambi i backup attivi</span>'
+    +'<span style="font-family:DM Mono,monospace;font-size:.72rem;display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#f87171;"></span>Nessun backup attivo</span>'
+    +'<span style="font-family:DM Mono,monospace;font-size:.72rem;display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#fbbf24;"></span>Backup parziale o incerto</span>'
     +'<span style="font-family:DM Mono,monospace;font-size:.72rem;color:#64748b;">\uD83D\uDDB1 Click su una fascia per aprire</span>'
     +'</div>';
 
@@ -907,13 +923,11 @@ function renderTZStrip(){
             var cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
             var pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
             var dc;
-            if(cloud.includes('attivo') || pc.includes('attivo')){
-              dc='#4ade80';
-            } else if(cloud.includes('disattivato') && pc.includes('disattivato')){
-              dc='#f87171';
-            } else {
-              dc='#fbbf24';
-            }
+            var cloudOk=cloud==='attivo';
+            var pcOk=pc==='attivo';
+            if(cloudOk && pcOk) dc='#22c55e';
+            else if(cloud==='disattivato' && pc==='disattivato') dc='#dc2626';
+            else dc='#f97316';
             var row=Math.floor(di/dpr);
             var col2=di%dpr;
             var dx=i*colW+4+col2*DOT_STEP;
@@ -963,12 +977,12 @@ function openTzModal(tz){
     var cloud2=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
     var pc2=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
     var dot;
-    if(cloud2.includes('attivo')||pc2.includes('attivo')){
-      dot='\uD83D\uDFE2'; // verde
-    } else if(cloud2.includes('disattivato')&&pc2.includes('disattivato')){
-      dot='<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7f1d1d;border:1px solid #450a0a;" title="Nessun backup"></span>'; // rosso scuro
+    if(cloud2==='attivo'&&pc2==='attivo'){
+      dot='\uD83D\uDFE2'; // verde - entrambi attivi
+    } else if(cloud2==='disattivato'&&pc2==='disattivato'){
+      dot='\uD83D\uDD34'; // rosso - nessun backup
     } else {
-      dot='\uD83D\uDFE1'; // giallo incerto
+      dot='\uD83D\uDFE0'; // arancio - parziale o incerto
     }
     var idx=clienti.indexOf(c);
     return '<tr onclick="openModalFromTz('+idx+',\''+tz+'\')" style="cursor:pointer;border-bottom:1px solid var(--border);" onmouseenter="this.style.background=\'var(--surface2)\'" onmouseleave="this.style.background=\'\'">'
@@ -1033,7 +1047,7 @@ function closeModalAndReturn(){
   }
 }
 
-// Auto-aggiornamento mappa ogni minuto
+// Auto-aggiornamento mappa ogni 15 minuti
 setInterval(function(){
   if(clienti.length>0) renderTZStrip();
 }, 60 * 1000);
