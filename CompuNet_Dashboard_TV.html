@@ -347,8 +347,8 @@ function drawMap(){
           const cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
           const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
           let dc;
-          if(cloud.includes('attivo')||pc.includes('attivo')) dc='#22c55e';
-          else if(cloud==='disattivato'&&pc==='disattivato') dc='#7f1d1d';
+          if(cloud==='attivo'&&pc==='attivo') dc='#22c55e';
+          else if(cloud==='disattivato'&&pc==='disattivato') dc='#dc2626';
           else dc='#f97316';
           const row=Math.floor(di/dpr);
           const col2=di%dpr;
