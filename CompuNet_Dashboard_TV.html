@@ -154,7 +154,7 @@ async function checkPassword(){
     backdrop-filter:blur(10px);
     z-index:10;
   ">
-    <div style="font-size:1vh;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.8vh;font-weight:600;">🕓 Ultime modifiche</div>
+    <div style="font-size:1.5vh;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1vh;font-weight:600;">🕓 Ultime modifiche</div>
     <div id="log-entries">—</div>
   </div>
 </div>
@@ -231,11 +231,11 @@ async function loadLog(){
       const campo=l.campo||'';
       const valore=l.valore_nuovo||'';
       const motivo=l.motivo||'';
-      return '<div style="margin-bottom:.6vh;padding-bottom:.6vh;border-bottom:1px solid rgba(255,255,255,0.08);">'
-        +'<div style="font-size:.85vh;color:#64748b;margin-bottom:.2vh;">'+ts+'</div>'
-        +'<div style="font-family:DM Mono,monospace;font-size:1vh;color:#f1f5f9;font-weight:700;margin-bottom:.2vh;">'+cliente+'</div>'
-        +'<div style="font-size:.9vh;color:#94a3b8;">'+campo+' → <span style="color:#60a5fa;font-weight:600;">'+valore+'</span></div>'
-        +(motivo?'<div style="font-size:.85vh;color:#fb923c;font-style:italic;margin-top:.2vh;">✏ '+motivo+'</div>':'')
+      return '<div style="margin-bottom:1vh;padding-bottom:1vh;border-bottom:1px solid rgba(255,255,255,0.08);">'
+        +'<div style="font-size:1.3vh;color:#64748b;margin-bottom:.3vh;">'+ts+'</div>'
+        +'<div style="font-family:DM Mono,monospace;font-size:1.6vh;color:#f1f5f9;font-weight:700;margin-bottom:.3vh;">'+cliente+'</div>'
+        +'<div style="font-size:1.4vh;color:#94a3b8;">'+campo+' → <span style="color:#60a5fa;font-weight:600;">'+valore+'</span></div>'
+        +(motivo?'<div style="font-size:1.3vh;color:#fb923c;font-style:italic;margin-top:.3vh;">✏ '+motivo+'</div>':'')
         +'</div>';
     }).join('');
   }catch(e){ console.warn('Log load error:',e); }
@@ -348,9 +348,7 @@ function drawMap(){
       if(lista.length>0){
         const dpr=Math.max(1,Math.floor(colW/DOT_STEP));
         const totalRows=Math.ceil(lista.length/dpr);
-        // Partenza dal confine sud del Sud America (circa 73% dell'altezza)
-        const southAmericaBottom=Math.round(H*0.73);
-        const dotsStartY=southAmericaBottom-totalRows*DOT_STEP;
+        const dotsStartY=H-22-totalRows*DOT_STEP;
         lista.forEach(function(c,di){
           const cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
           const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
