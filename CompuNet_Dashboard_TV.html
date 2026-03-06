@@ -348,7 +348,9 @@ function drawMap(){
       if(lista.length>0){
         const dpr=Math.max(1,Math.floor(colW/DOT_STEP));
         const totalRows=Math.ceil(lista.length/dpr);
-        const dotsStartY=H-22-totalRows*DOT_STEP;
+        // Partenza dal confine sud del Sud America (circa 73% dell'altezza)
+        const southAmericaBottom=Math.round(H*0.73);
+        const dotsStartY=southAmericaBottom-totalRows*DOT_STEP;
         lista.forEach(function(c,di){
           const cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
           const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
