@@ -28,59 +28,65 @@
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;}
 
 /* Topbar */
+/* Layout 16:9 — tutto in viewport, niente scroll */
+html,body{height:100%;overflow:hidden;}
+
 .topbar{
   display:flex;align-items:center;justify-content:space-between;
-  padding:10px 28px;
-  background:rgba(0,0,0,0.4);
+  padding:0 1.8vw;
+  background:rgba(0,0,0,0.5);
   border-bottom:1px solid var(--border);
-  height:58px;
+  height:6vh;
 }
-.logo-wrap{display:flex;align-items:center;gap:10px;}
-.logo-wrap img{height:34px;}
+.logo-wrap{display:flex;align-items:center;gap:.8vw;}
+.logo-wrap img{height:3.5vh;}
 .logo-text{display:flex;flex-direction:column;line-height:1.1;}
-.logo-name{font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;color:var(--heading);}
+.logo-name{font-family:Syne,sans-serif;font-weight:800;font-size:1.4vh;color:var(--heading);}
 .logo-name span{color:var(--accent);}
-.logo-sub{font-size:.55rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
-.clock{font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;color:var(--heading);letter-spacing:2px;}
-.last-refresh{font-size:.65rem;color:var(--muted);text-align:right;margin-top:2px;}
-.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite;}
+.logo-sub{font-size:.9vh;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.clock{font-family:Syne,sans-serif;font-size:2.6vh;font-weight:800;color:var(--heading);letter-spacing:2px;}
+.last-refresh{font-size:1vh;color:var(--muted);text-align:right;margin-top:.3vh;}
+.status-dot{width:1vh;height:1vh;border-radius:50%;background:var(--green);display:inline-block;margin-right:.4vw;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 
 /* Stat cards */
 .stats-row{
   display:grid;
   grid-template-columns:repeat(5,1fr);
-  gap:8px;
-  padding:4px 28px;
+  gap:.5vw;
+  padding:.4vh 1.8vw;
+  height:9vh;
 }
 .stat{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:8px;
-  padding:6px 12px;
+  border-radius:.8vh;
+  padding:.6vh 1vw;
   position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;
 }
-.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:.3vh;}
 .stat.blue::before{background:var(--accent);}
 .stat.green::before{background:var(--green);}
 .stat.orange::before{background:var(--orange);}
 .stat.red::before{background:var(--red);}
 .stat.cyan::before{background:#22d3ee;}
-.stat-label{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
-.stat-value{font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;line-height:1;}
+.stat-label{font-size:.85vh;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.2vh;}
+.stat-value{font-family:Syne,sans-serif;font-size:2.8vh;font-weight:800;line-height:1;}
 .stat-value.blue{color:var(--accent);}
 .stat-value.green{color:var(--green);}
 .stat-value.orange{color:var(--orange);}
 .stat-value.red{color:var(--red);}
 .stat-value.cyan{color:#22d3ee;}
-.stat-sub{font-size:.55rem;color:var(--muted);margin-top:1px;}
+.stat-sub{font-size:.9vh;color:var(--muted);margin-top:.3vh;}
 
-/* Map */
+/* Map — occupa tutto lo spazio rimanente */
 .map-wrap{
-  padding:0 28px 12px;
-  height:calc(100vh - 58px - 52px - 8px);
+  padding:0 1.8vw .8vh;
+  height:calc(100vh - 6vh - 9vh);
+  position:relative;
 }
-#tv-map-svg{width:100%;border-radius:10px;display:block;background:#0a1220;}
+#tv-map-svg{width:100%;height:100%;border-radius:1vh;display:block;background:#0a1220;}
 
 /* Animations */
 .fade-in{animation:fadeIn .5s ease;}
@@ -139,16 +145,16 @@ async function checkPassword(){
 <div class="map-wrap" style="position:relative;">
   <svg id="tv-map-svg"></svg>
   <div id="log-card" style="
-    position:absolute;top:50%;transform:translateY(-50%);left:16px;
+    position:absolute;top:50%;transform:translateY(-50%);left:1vw;
     background:rgba(8,13,20,0.88);
     border:1px solid rgba(255,255,255,0.13);
-    border-radius:10px;
-    padding:14px 16px;
-    width:310px;
+    border-radius:1vh;
+    padding:1vh 1.2vw;
+    width:18vw;
     backdrop-filter:blur(10px);
     z-index:10;
   ">
-    <div style="font-size:.62rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-weight:600;">🕓 Ultime modifiche</div>
+    <div style="font-size:1vh;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.8vh;font-weight:600;">🕓 Ultime modifiche</div>
     <div id="log-entries">—</div>
   </div>
 </div>
@@ -225,11 +231,11 @@ async function loadLog(){
       const campo=l.campo||'';
       const valore=l.valore_nuovo||'';
       const motivo=l.motivo||'';
-      return '<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);">'
-        +'<div style="font-size:.65rem;color:#64748b;margin-bottom:3px;">'+ts+'</div>'
-        +'<div style="font-family:DM Mono,monospace;font-size:.82rem;color:#f1f5f9;font-weight:700;margin-bottom:2px;">'+cliente+'</div>'
-        +'<div style="font-size:.75rem;color:#94a3b8;">'+campo+' → <span style="color:#60a5fa;font-weight:600;">'+valore+'</span></div>'
-        +(motivo?'<div style="font-size:.7rem;color:#fb923c;font-style:italic;margin-top:3px;">✏ '+motivo+'</div>':'')
+      return '<div style="margin-bottom:.6vh;padding-bottom:.6vh;border-bottom:1px solid rgba(255,255,255,0.08);">'
+        +'<div style="font-size:.85vh;color:#64748b;margin-bottom:.2vh;">'+ts+'</div>'
+        +'<div style="font-family:DM Mono,monospace;font-size:1vh;color:#f1f5f9;font-weight:700;margin-bottom:.2vh;">'+cliente+'</div>'
+        +'<div style="font-size:.9vh;color:#94a3b8;">'+campo+' → <span style="color:#60a5fa;font-weight:600;">'+valore+'</span></div>'
+        +(motivo?'<div style="font-size:.85vh;color:#fb923c;font-style:italic;margin-top:.2vh;">✏ '+motivo+'</div>':'')
         +'</div>';
     }).join('');
   }catch(e){ console.warn('Log load error:',e); }
@@ -342,7 +348,9 @@ function drawMap(){
       if(lista.length>0){
         const dpr=Math.max(1,Math.floor(colW/DOT_STEP));
         const totalRows=Math.ceil(lista.length/dpr);
-        const dotsStartY=H-22-totalRows*DOT_STEP;
+        // Partenza dal confine sud del Sud America (circa 73% dell'altezza)
+        const southAmericaBottom=Math.round(H*0.73);
+        const dotsStartY=southAmericaBottom-totalRows*DOT_STEP;
         lista.forEach(function(c,di){
           const cloud=(c['Stato Backup su Cloud']||'').toLowerCase().trim();
           const pc=(c['Stato Backup PC1 - PC2']||'').toLowerCase().trim();
