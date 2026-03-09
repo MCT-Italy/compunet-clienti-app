@@ -123,7 +123,7 @@ body.dark .modal-overlay{background:rgba(0,0,0,.65);}
 .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:560px){.field-grid{grid-template-columns:1fr;}}
-.field{display:flex;flex-direction:column;gap:6px;}.field.full{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:6px;}.field.full{grid-column:1/-1;}.field.half{grid-column:span 1;}
 .field label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;}
 .field input,.field select,.field textarea{padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:.82rem;outline:none;transition:border-color .2s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
@@ -234,12 +234,14 @@ body.dark .modal-overlay{background:rgba(0,0,0,.65);}
         <thead><tr>
           <th onclick="sortBy('checked')">Flag</th>
           <th onclick="sortBy('Nome')">CLIENTE</th>
+          <th onclick="sortBy('Citta')">CITTÀ</th>
           <th onclick="sortBy('Vers. Git')">GIT</th>
           <th onclick="sortBy('Vers. Grafica SCADA')">SCADA</th>
           <th onclick="sortBy('N. UPD')">UPD</th>
           <th onclick="sortBy('Stato Backup su Cloud')">BACKUP CLOUD</th>
           <th onclick="sortBy('Stato Backup PC1 - PC2')">BACKUP PC</th>
           <th>ORA LOCALE</th>
+          <th onclick="sortBy('User')">USER</th>
           <th>CONTATTO</th>
           <th>SVILUPPI</th>
           <th></th>
@@ -446,12 +448,14 @@ function renderTable(){
     return'<tr class="'+(isFlagged(c)?'flagged':'')+'" onclick="openModal('+idx+')">'+
       '<td style="font-size:.85rem">'+(isFlagged(c)?'\uD83D\uDEA9':'·')+'</td>'+
       '<td class="td-name" title="'+c.Nome+'">'+c.Nome+'</td>'+
+      '<td style="font-size:.72rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(c.Citta||'')+'">'+(c.Citta||'')+'</td>'+
       '<td>'+gbadge(c['Vers. Git'])+'</td>'+
       '<td>'+sbadge(c['Vers. Grafica SCADA'])+'</td>'+
       '<td style="font-weight:700;color:'+uc+'">'+upd+'</td>'+
       '<td>'+bbadge(c['Stato Backup su Cloud'])+'</td>'+
       '<td>'+bbadge(c['Stato Backup PC1 - PC2'])+'</td>'+
       tc+
+      '<td style="font-size:.72rem;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(c.User||'')+'">'+(c.User||'')+'</td>'+
       '<td style="font-size:.72rem">'+(c.Contatto?'<div style="display:flex;align-items:center;gap:5px;"><a href="mailto:'+c.Contatto+'" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none;">'+c.Contatto+'</a><button onclick="event.stopPropagation();copyToClipboard(this.dataset.e)" data-e="'+c.Contatto+'" title="Copia email" style="background:none;border:none;cursor:pointer;font-size:.8rem;padding:1px 3px;opacity:.6;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.6">📋</button></div>':'')+'</td>'+
       '<td>'+(c.Sviluppi?'<span class="badge badge-green">'+c.Sviluppi+'</span>':'')+'</td>'+
       '<td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('+idx+')">'+(userRole==="admin"?"\u270F\uFE0F":"\uD83D\uDD0D")+'</button></td>'+
@@ -473,6 +477,9 @@ function goPage(p){const t=Math.ceil(filteredClienti.length/ROWS);if(p<1||p>t)re
 
 const FIELDS=[
   {k:'Nome',l:'Nome Cliente',full:true},
+  {k:'Citta',l:'Città'},
+  {k:'User',l:'User'},
+  {k:'Password',l:'Password'},
   {k:'Vers. Git',l:'Versione Git'},
   {k:'Vers. Grafica SCADA',l:'Grafica SCADA'},
   {k:'N. UPD',l:'N. UPD',type:'number'},
@@ -481,7 +488,9 @@ const FIELDS=[
   {k:'Contatto',l:'Contatto / Email',full:true},
   {k:'Sviluppi',l:'Sviluppi'},
   {k:'DB',l:'DB'},
-  {k:'orario attuale',l:'Offset GMT (es. +1, -5, +11)',full:true,placeholder:'es. +1, -5, +11'},
+  {k:'orario attuale',l:'Offset GMT',placeholder:'es. +1, -5, +11',full:true},
+  {k:'Latitudine',l:'Latitudine',type:'text',placeholder:'es. 45.4642'},
+  {k:'Longitudine',l:'Longitudine',type:'text',placeholder:'es. 9.1900'},
 ];
 
 function openNewModal(){
@@ -503,11 +512,16 @@ function openModal(idx){
   document.getElementById('modal-log-section').innerHTML='<div class="section-title">Log Modifiche</div>'+(cl.length?cl.map(l=>'<div class="log-entry"><div class="log-time">'+l['Data modifica'].slice(0,16)+'</div><div class="log-content"><div class="log-detail">'+l.Campo+' \u2192 <strong>'+l['Nuovo Valore']+'</strong></div>'+(l.Motivo?'<div class="log-motivo">'+l.Motivo+'</div>':'')+'</div></div>').join(''):'<div style="color:var(--muted);font-size:.8rem;padding:10px 0">Nessun log trovato.</div>');
   document.getElementById('modal-overlay').classList.add('open');
 }
+function escapeHtml(str){
+  if(str===null||str===undefined)return'';
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 function buildFields(c){
   document.getElementById('modal-fields').innerHTML=FIELDS.map(f=>{
     const v=c[f.k]!==undefined?c[f.k]:'';
-    if(f.type==='select')return'<div class="field'+(f.full?' full':'')+'"><label>'+f.l+'</label><select name="'+f.k+'">'+f.opts.map(o=>'<option value="'+o+'"'+(String(v)===o?' selected':'')+'>'+o+'</option>').join('')+'</select></div>';
-    return'<div class="field'+(f.full?' full':'')+'"><label>'+f.l+'</label><input type="'+(f.type||'text')+'" name="'+f.k+'" value="'+v+'" placeholder="'+(f.placeholder||f.l)+'"></div>';
+    const cls='field'+(f.full?' full':'');
+    if(f.type==='select')return'<div class="'+cls+'"><label>'+f.l+'</label><select name="'+f.k+'">'+f.opts.map(o=>'<option value="'+o+'"'+(String(v)===o?' selected':'')+'>'+o+'</option>').join('')+'</select></div>';
+    return'<div class="'+cls+'"><label>'+f.l+'</label><input type="'+(f.type||'text')+'" name="'+f.k+'" value="'+escapeHtml(v)+'" placeholder="'+(f.placeholder||f.l)+'"></div>';
   }).join('');
 }
 function closeModal(){
@@ -539,7 +553,7 @@ async function saveModal(){
     toast('Cliente "'+d.Nome+'" aggiunto','success');
   } else {
     const old=clienti[editingIdx];
-    const campiMonitorati=['Vers. Git','Vers. Grafica SCADA','N. UPD','Stato Backup su Cloud','Stato Backup PC1 - PC2','orario attuale','Contatto','Sviluppi','DB','Nome'];
+    const campiMonitorati=['Vers. Git','Vers. Grafica SCADA','N. UPD','Stato Backup su Cloud','Stato Backup PC1 - PC2','orario attuale','Contatto','Sviluppi','DB','Nome','User','Password','Citta','Latitudine','Longitudine'];
     campiMonitorati.forEach(campo=>{
       const vecchio=String(old[campo]||'');
       const nuovo=String(d[campo]||'');
@@ -676,7 +690,12 @@ async function loadClientiFromDB() {
       "orario attuale": r.offset_gmt || "",
       "Contatto": r.contatto || "",
       "Sviluppi": r.sviluppi || "",
-      "DB": r.db || ""
+      "DB": r.db || "",
+      "User": r.user || "",
+      "Password": r.password || "",
+      "Citta": r.citta || "",
+      "Latitudine": r.latitudine || "",
+      "Longitudine": r.longitudine || ""
     }));
   }
   // Carica log
@@ -768,6 +787,11 @@ async function saveToSupabase(cliente, isNew) {
     contatto: cliente.Contatto,
     sviluppi: cliente.Sviluppi,
     db: cliente.DB,
+    user: cliente.User || null,
+    password: cliente.Password || null,
+    citta: cliente.Citta || null,
+    latitudine: cliente.Latitudine ? parseFloat(cliente.Latitudine) : null,
+    longitudine: cliente.Longitudine ? parseFloat(cliente.Longitudine) : null,
     updated_at: new Date().toISOString()
   };
   try {
