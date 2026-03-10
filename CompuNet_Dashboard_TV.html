@@ -175,21 +175,46 @@ async function loadLog(){
 
 function updateStats(){
   const total=clienti.length;
-  const on=clienti.filter(c=>(c.stato_backup_cloud||'').toLowerCase().includes('attivo')).length;
-  const off=clienti.filter(c=>(c.stato_backup_cloud||'').toLowerCase()==='disattivato').length;
+  
+  // Cloud Attivo = stato_backup_cloud contiene "attivo"
+  const cloudOn=clienti.filter(c=>(c.stato_backup_cloud||'').toLowerCase().includes('attivo')).length;
+  
+  // Cloud Disattivo = stato_backup_cloud è esattamente "disattivato"
+  const cloudOff=clienti.filter(c=>(c.stato_backup_cloud||'').toLowerCase().trim()==='disattivato').length;
+  
+  // Nessun Backup = disattivato su ENTRAMBI cloud E PC
   const noBackup=clienti.filter(c=>{
     const cl=(c.stato_backup_cloud||'').toLowerCase().trim();
     const pc=(c.stato_backup_pc||'').toLowerCase().trim();
-    // Nessun backup = disattivato su ENTRAMBI cloud E PC
     return cl==='disattivato' && pc==='disattivato';
   }).length;
-  const mixed=total-on-off-noBackup;
+  
+  // Stato Misto = uno attivo e uno disattivato (non indefinito)
+  const mixed=clienti.filter(c=>{
+    const cl=(c.stato_backup_cloud||'').toLowerCase().trim();
+    const pc=(c.stato_backup_pc||'').toLowerCase().trim();
+    const clAttivo = cl.includes('attivo');
+    const clDisatt = cl==='disattivato';
+    const pcAttivo = pc.includes('attivo');
+    const pcDisatt = pc==='disattivato';
+    // Misto = (cloud attivo E pc disattivato) OPPURE (cloud disattivato E pc attivo)
+    return (clAttivo && pcDisatt) || (clDisatt && pcAttivo);
+  }).length;
+  
+  // Stato Indefinito = tutti gli altri (con ? o valori non riconosciuti)
+  const indefinito = total - cloudOn - cloudOff + noBackup + mixed; // correzione per evitare doppi conteggi
+  // Ricalcolo più semplice: indefinito = quelli che non sono né attivo né disattivato sul cloud
+  const indefinitoCount = clienti.filter(c=>{
+    const cl=(c.stato_backup_cloud||'').toLowerCase().trim();
+    return !cl.includes('attivo') && cl!=='disattivato';
+  }).length;
+  
   document.getElementById('stats-row').innerHTML=
     '<div class="stat-card"><div class="stat-num">'+total+'</div><div class="stat-label">Totale Clienti</div></div>'+
-    '<div class="stat-card"><div class="stat-num" style="color:#22c55e;">'+on+'</div><div class="stat-label">Cloud Attivo</div></div>'+
-    '<div class="stat-card"><div class="stat-num" style="color:#f97316;">'+off+'</div><div class="stat-label">Cloud Disattivo</div></div>'+
-    '<div class="stat-card"><div class="stat-num" style="color:#64748b;">'+mixed+'</div><div class="stat-label">Stato Misto</div></div>'+
-    '<div class="stat-card"><div class="stat-num" style="color:#dc2626;">'+noBackup+'</div><div class="stat-label">Nessun Backup</div></div>';
+    '<div class="stat-card"><div class="stat-num" style="color:#22c55e;">'+cloudOn+'</div><div class="stat-label">Cloud Attivo</div></div>'+
+    '<div class="stat-card"><div class="stat-num" style="color:#f97316;">'+cloudOff+'</div><div class="stat-label">Cloud Disattivo</div></div>'+
+    '<div class="stat-card"><div class="stat-num" style="color:#dc2626;">'+noBackup+'</div><div class="stat-label">Nessun Backup</div></div>'+
+    '<div class="stat-card"><div class="stat-num" style="color:#64748b;">'+indefinitoCount+'</div><div class="stat-label">Stato Indefinito</div></div>';
 }
 
 // Raggruppa clienti SENZA coordinate per fuso orario (fallback)
