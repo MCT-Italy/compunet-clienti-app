@@ -257,12 +257,16 @@ function drawMap(){
   // Colori per le fasce orarie (stessi della App)
   const tzColors=['#ef4444','#f97316','#eab308','#84cc16','#22c55e','#14b8a6','#06b6d4','#0ea5e9','#3b82f6','#6366f1','#8b5cf6','#a855f7','#d946ef','#ec4899','#f43f5e','#ef4444','#f97316','#eab308','#84cc16','#22c55e','#14b8a6','#06b6d4','#0ea5e9','#3b82f6','#6366f1'];
 
-  // Colonne giorno/notte
+  // Colonne giorno/notte - più evidenti
   allTZ.forEach(function(tz,i){
     const lh=((nowUtc.getUTCHours()+parseFloat(tz)+24)%24);
-    const isDay=(lh>=7&&lh<20);
+    const dayOfYear = Math.floor((nowUtc - new Date(nowUtc.getUTCFullYear(),0,0)) / 86400000);
+    const seasonOffset = Math.cos((dayOfYear - 172) * 2 * Math.PI / 365);
+    const sunrise = 6.25 - seasonOffset * 1.25;
+    const sunset = 19 + seasonOffset * 2;
+    const isDay = lh >= sunrise && lh < sunset;
     d3svg.append('rect').attr('x',i*colW).attr('y',0).attr('width',colW).attr('height',H)
-      .attr('fill',isDay?'rgba(255,230,80,0.06)':'rgba(0,0,80,0.20)');
+      .attr('fill',isDay?'rgba(255,200,50,0.12)':'rgba(10,15,40,0.35)');
   });
 
   // Linee verticali colorate + etichette in alto
@@ -461,7 +465,7 @@ function drawMap(){
       if (lista.length === 0) return;
 
       const cx = i * colW + colW / 2;
-      const baseY = H * 0.88; // Altezza Patagonia
+      const baseY = H * 0.82; // Altezza sud America
 
       lista.forEach(function(c, j) {
         const cy = baseY + j * 16; // Offset verticale per ogni cliente
