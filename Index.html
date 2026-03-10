@@ -929,12 +929,33 @@ function renderTZStrip(){
       var x=i*colW;
       svg.append('line').attr('x1',x).attr('y1',0).attr('x2',x).attr('y2',H)
         .attr('stroke',tzColors[i%tzColors.length]).attr('stroke-width',1).attr('opacity',0.5);
-      // Etichetta fuso orario in alto
+      
       var lh=((nowUtc.getUTCHours()+parseFloat(tz)+24)%24);
-      var label=(tz>=0?'+':'')+tz+' ('+String(Math.floor(lh)).padStart(2,'0')+':'+String(nowUtc.getUTCMinutes()).padStart(2,'0')+')';
+      var mm=String(nowUtc.getUTCMinutes()).padStart(2,'0');
+      var timeStr=String(Math.floor(lh)).padStart(2,'0')+':'+mm;
+      
+      // Calcolo alba/tramonto approssimato in base al giorno dell'anno
+      var dayOfYear = Math.floor((nowUtc - new Date(nowUtc.getUTCFullYear(),0,0)) / 86400000);
+      // Oscillazione stagionale: alba varia tra 5:00 (estate) e 7:30 (inverno), tramonto tra 21:00 e 17:00
+      var seasonOffset = Math.cos((dayOfYear - 172) * 2 * Math.PI / 365); // -1 a +1, picco a giugno
+      var sunrise = 6.25 - seasonOffset * 1.25; // Alba: 5:00 estate, 7:30 inverno
+      var sunset = 19 + seasonOffset * 2; // Tramonto: 21:00 estate, 17:00 inverno
+      var isDay = lh >= sunrise && lh < sunset;
+      var icon = isDay ? '☀️' : '🌙';
+      
+      // Riga 1: Orario
       svg.append('text').attr('x',x+colW/2).attr('y',12)
-        .attr('text-anchor','middle').attr('font-size',8).attr('fill',tzColors[i%tzColors.length])
-        .attr('font-family','DM Mono,monospace').attr('opacity',0.9).text(label);
+        .attr('text-anchor','middle').attr('font-size',10).attr('fill','#ffffff')
+        .attr('font-family','DM Mono,monospace').text(timeStr);
+      
+      // Riga 2: Offset GMT
+      svg.append('text').attr('x',x+colW/2).attr('y',24)
+        .attr('text-anchor','middle').attr('font-size',10).attr('fill','#ffffff')
+        .attr('font-family','DM Mono,monospace').attr('opacity',0.8).text('GMT'+tz);
+      
+      // Riga 3: Icona sole/luna
+      svg.append('text').attr('x',x+colW/2).attr('y',38)
+        .attr('text-anchor','middle').attr('font-size',9).text(icon);
     });
 
     d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(function(world){
