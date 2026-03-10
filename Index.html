@@ -1070,6 +1070,55 @@ function renderTZStrip(){
         g.on('click',function(){ openClusterModal(lista); });
       });
 
+      // Clienti SENZA BACKUP: pallino rosso in basso (altezza Patagonia) con nome
+      var noBackupClients = clienti.filter(function(c) {
+        var cl = (c['Stato Backup su Cloud'] || '').toLowerCase().trim();
+        var pc = (c['Stato Backup PC1 - PC2'] || '').toLowerCase().trim();
+        return cl === 'disattivato' && pc === 'disattivato';
+      });
+
+      // Raggruppa per fuso orario
+      var noBackupByTZ = {};
+      noBackupClients.forEach(function(c) {
+        var tz = String(c['orario attuale'] || '0').trim();
+        if (tz.charAt(0) !== '+' && tz.charAt(0) !== '-') tz = '+' + tz;
+        var num = parseFloat(tz);
+        if (!isNaN(num)) tz = (num >= 0 ? '+' : '') + Math.round(num);
+        if (!noBackupByTZ[tz]) noBackupByTZ[tz] = [];
+        noBackupByTZ[tz].push(c);
+      });
+
+      allTZ.forEach(function(tz, i) {
+        var lista = noBackupByTZ[tz] || [];
+        if (lista.length === 0) return;
+
+        var cx = i * colW + colW / 2;
+        var baseY = H * 0.88; // Altezza Patagonia
+
+        lista.forEach(function(c, j) {
+          var cy = baseY + j * 14; // Offset verticale per ogni cliente
+          
+          var g = svg.append('g').style('cursor', 'pointer');
+          
+          // Pallino rosso piccolo
+          g.append('circle')
+            .attr('cx', cx - 4).attr('cy', cy - 3).attr('r', 3)
+            .attr('fill', '#dc2626').attr('opacity', 0.95);
+          
+          // Nome cliente
+          var nome = (c.Nome || '').substring(0, 15); // Tronca a 15 caratteri
+          g.append('text')
+            .attr('x', cx + 2).attr('y', cy)
+            .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
+            .attr('font-size', 9).attr('fill', '#dc2626').attr('font-weight', '600')
+            .text(nome);
+          
+          // Click per aprire modale - trova l'indice del cliente
+          var clienteIdx = clienti.findIndex(function(cl) { return cl.Nome === c.Nome; });
+          g.on('click', function() { if(clienteIdx >= 0) openModal(clienteIdx); });
+        });
+      });
+
     }).catch(function(e){ console.warn('Map load failed:',e); });
   }
 
