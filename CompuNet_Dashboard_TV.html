@@ -464,23 +464,24 @@ function drawMap(){
       const lista = noBackupByTZ[tz] || [];
       if (lista.length === 0) return;
 
-      const cx = i * colW + colW / 2;
-      const baseY = H * 0.82; // Altezza sud America
+      const baseX = i * colW + colW / 2;
+      const baseY = H * 0.78;
 
       lista.forEach(function(c, j) {
-        const cy = baseY + j * 16; // Offset verticale per ogni cliente
+        const cx = baseX + (j % 2) * 80 - 40; // Alterna sinistra/destra
+        const cy = baseY + Math.floor(j / 2) * 18; // Nuova riga ogni 2
         
         // Pallino rosso piccolo
         d3svg.append('circle')
-          .attr('cx', cx - 5).attr('cy', cy - 4).attr('r', 4)
+          .attr('cx', cx - 4).attr('cy', cy - 3).attr('r', 3)
           .attr('fill', '#dc2626').attr('opacity', 0.95);
         
         // Nome cliente
-        const nome = (c.nome || '').substring(0, 18); // Tronca a 18 caratteri
+        const nome = (c.nome || '').substring(0, 12);
         d3svg.append('text')
-          .attr('x', cx + 3).attr('y', cy)
+          .attr('x', cx + 2).attr('y', cy)
           .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
-          .attr('font-size', 10).attr('fill', '#dc2626').attr('font-weight', '600')
+          .attr('font-size', 9).attr('fill', '#dc2626').attr('font-weight', '600')
           .text(nome);
       });
     });
