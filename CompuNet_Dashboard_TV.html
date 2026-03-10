@@ -437,6 +437,49 @@ function drawMap(){
           .text(lista.length);
       }
     });
+
+    // Clienti SENZA BACKUP: pallino rosso in basso (altezza Patagonia) con nome
+    const noBackupClients = clienti.filter(c => {
+      const cl = (c.stato_backup_cloud || '').toLowerCase().trim();
+      const pc = (c.stato_backup_pc || '').toLowerCase().trim();
+      return cl === 'disattivato' && pc === 'disattivato';
+    });
+
+    // Raggruppa per fuso orario
+    const noBackupByTZ = {};
+    noBackupClients.forEach(c => {
+      let tz = String(c.offset_gmt || '0').trim();
+      if (tz.charAt(0) !== '+' && tz.charAt(0) !== '-') tz = '+' + tz;
+      const num = parseFloat(tz);
+      if (!isNaN(num)) tz = (num >= 0 ? '+' : '') + Math.round(num);
+      if (!noBackupByTZ[tz]) noBackupByTZ[tz] = [];
+      noBackupByTZ[tz].push(c);
+    });
+
+    allTZ.forEach(function(tz, i) {
+      const lista = noBackupByTZ[tz] || [];
+      if (lista.length === 0) return;
+
+      const cx = i * colW + colW / 2;
+      const baseY = H * 0.88; // Altezza Patagonia
+
+      lista.forEach(function(c, j) {
+        const cy = baseY + j * 16; // Offset verticale per ogni cliente
+        
+        // Pallino rosso piccolo
+        d3svg.append('circle')
+          .attr('cx', cx - 5).attr('cy', cy - 4).attr('r', 4)
+          .attr('fill', '#dc2626').attr('opacity', 0.95);
+        
+        // Nome cliente
+        const nome = (c.nome || '').substring(0, 18); // Tronca a 18 caratteri
+        d3svg.append('text')
+          .attr('x', cx + 3).attr('y', cy)
+          .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
+          .attr('font-size', 10).attr('fill', '#dc2626').attr('font-weight', '600')
+          .text(nome);
+      });
+    });
   }
 }
 
