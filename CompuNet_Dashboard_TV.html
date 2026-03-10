@@ -75,13 +75,13 @@ async function checkPwd(){
 <div class="map-wrap" style="position:relative;">
   <svg id="tv-map-svg"></svg>
   <div id="log-card" style="
-    position:absolute;bottom:8vh;left:0.5vw;
+    position:absolute;top:50%;left:0.5vw;
     background:rgba(8,13,20,0.94);
     border:1px solid rgba(255,255,255,0.18);
     border-radius:1vh;
     padding:1.2vh 1.2vw;
     width:18vw;
-    max-height:42vh;
+    max-height:45vh;
     overflow-y:auto;
     backdrop-filter:blur(14px);
     z-index:10;
@@ -273,11 +273,30 @@ function drawMap(){
     
     const lh=((nowUtc.getUTCHours()+parseFloat(tz)+24)%24);
     const mm=String(nowUtc.getUTCMinutes()).padStart(2,'0');
-    const label=(parseFloat(tz)>=0?'+':'')+tz+' ('+String(Math.floor(lh)).padStart(2,'0')+':'+mm+')';
+    const timeStr=String(Math.floor(lh)).padStart(2,'0')+':'+mm;
     
-    d3svg.append('text').attr('x',x+colW/2).attr('y',16)
-      .attr('text-anchor','middle').attr('font-size',11).attr('fill',tzColors[i%tzColors.length])
-      .attr('font-family','DM Mono,monospace').attr('opacity',0.95).attr('font-weight','500').text(label);
+    // Calcolo alba/tramonto approssimato in base al giorno dell'anno
+    const dayOfYear = Math.floor((nowUtc - new Date(nowUtc.getUTCFullYear(),0,0)) / 86400000);
+    // Oscillazione stagionale: alba varia tra 5:00 (estate) e 7:30 (inverno), tramonto tra 21:00 e 17:00
+    const seasonOffset = Math.cos((dayOfYear - 172) * 2 * Math.PI / 365); // -1 a +1, picco a giugno
+    const sunrise = 6.25 - seasonOffset * 1.25; // Alba: 5:00 estate, 7:30 inverno
+    const sunset = 19 + seasonOffset * 2; // Tramonto: 21:00 estate, 17:00 inverno
+    const isDay = lh >= sunrise && lh < sunset;
+    const icon = isDay ? '☀️' : '🌙';
+    
+    // Riga 1: Orario
+    d3svg.append('text').attr('x',x+colW/2).attr('y',14)
+      .attr('text-anchor','middle').attr('font-size',11).attr('fill','#ffffff')
+      .attr('font-family','DM Mono,monospace').text(timeStr);
+    
+    // Riga 2: Offset GMT
+    d3svg.append('text').attr('x',x+colW/2).attr('y',26)
+      .attr('text-anchor','middle').attr('font-size',9).attr('fill','#ffffff')
+      .attr('font-family','DM Mono,monospace').attr('opacity',0.8).text('GMT'+tz);
+    
+    // Riga 3: Icona sole/luna
+    d3svg.append('text').attr('x',x+colW/2).attr('y',40)
+      .attr('text-anchor','middle').attr('font-size',12).text(icon);
   });
 
   // Mappa mondo
