@@ -273,7 +273,7 @@ function drawMap(){
   allTZ.forEach(function(tz,i){
     const x=i*colW;
     d3svg.append('line').attr('x1',x).attr('y1',0).attr('x2',x).attr('y2',H)
-      .attr('stroke',tzColors[i%tzColors.length]).attr('stroke-width',1.5).attr('opacity',0.6);
+      .attr('stroke','#ffffff').attr('stroke-width',0.4).attr('opacity',0.25);
     
     const lh=((nowUtc.getUTCHours()+parseFloat(tz)+24)%24);
     const mm=String(nowUtc.getUTCMinutes()).padStart(2,'0');
@@ -442,7 +442,7 @@ function drawMap(){
       }
     });
 
-    // Clienti SENZA BACKUP: pallino rosso in basso (altezza Patagonia) con nome
+    // Clienti SENZA BACKUP: layout globale con collision avoidance multi-riga
     const noBackupClients = clienti.filter(c => {
       const cl = (c.stato_backup_cloud || '').toLowerCase().trim();
       const pc = (c.stato_backup_pc || '').toLowerCase().trim();
@@ -460,30 +460,51 @@ function drawMap(){
       noBackupByTZ[tz].push(c);
     });
 
+    // Raccolta globale ordinata per TZ
+    const allNB = [];
     allTZ.forEach(function(tz, i) {
-      const lista = noBackupByTZ[tz] || [];
-      if (lista.length === 0) return;
-
-      const baseX = i * colW + colW / 2;
-      const baseY = H * 0.78;
-
-      lista.forEach(function(c, j) {
-        const cx = baseX + (j % 2) * 80 - 40; // Alterna sinistra/destra
-        const cy = baseY + Math.floor(j / 2) * 18; // Nuova riga ogni 2
-        
-        // Pallino rosso piccolo
-        d3svg.append('circle')
-          .attr('cx', cx - 4).attr('cy', cy - 3).attr('r', 3)
-          .attr('fill', '#dc2626').attr('opacity', 0.95);
-        
-        // Nome cliente
-        const nome = (c.nome || '').substring(0, 12);
-        d3svg.append('text')
-          .attr('x', cx + 2).attr('y', cy)
-          .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
-          .attr('font-size', 9).attr('fill', '#dc2626').attr('font-weight', '600')
-          .text(nome);
+      (noBackupByTZ[tz] || []).forEach(function(c) {
+        allNB.push({ c: c, idealX: i * colW + colW / 2 });
       });
+    });
+
+    // Layout multi-riga: le prime righe partono dall'altezza Patagonia, crescono verso il basso
+    const nbBaseY = H * 0.78 + 26;
+    const nbRowH = 13;
+    const nbGap = 3;
+    const nbRows = []; // nbRows[r] = endX dell'ultimo label nella riga r
+
+    allNB.forEach(function(item) {
+      const nome = (item.c.nome || '').substring(0, 15);
+      const lw = nome.length * 5.8 + 14;
+
+      for (let r = 0; r <= nbRows.length; r++) {
+        const rowEnd = (nbRows[r] !== undefined) ? nbRows[r] : -Infinity;
+        if (rowEnd + nbGap <= item.idealX) {
+          nbRows[r] = item.idealX + lw;
+          item.lx = item.idealX;
+          item.ly = nbBaseY + r * nbRowH;
+          break;
+        }
+      }
+
+      // Pallino rosso piccolo
+      d3svg.append('circle')
+        .attr('cx', item.lx - 4).attr('cy', item.ly - 3).attr('r', 3)
+        .attr('fill', '#dc2626').attr('opacity', 0.95);
+
+      // Background bianco
+      d3svg.append('rect')
+        .attr('x', item.lx + 2).attr('y', item.ly - 9)
+        .attr('width', lw - 4).attr('height', 12)
+        .attr('fill', 'white').attr('rx', 2).attr('opacity', 0.85);
+
+      // Nome cliente
+      d3svg.append('text')
+        .attr('x', item.lx + 5).attr('y', item.ly)
+        .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
+        .attr('font-size', 9).attr('fill', '#dc2626').attr('font-weight', '600')
+        .text(nome);
     });
   }
 }

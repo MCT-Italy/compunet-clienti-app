@@ -928,7 +928,7 @@ function renderTZStrip(){
     allTZ.forEach(function(tz,i){
       var x=i*colW;
       svg.append('line').attr('x1',x).attr('y1',0).attr('x2',x).attr('y2',H)
-        .attr('stroke',tzColors[i%tzColors.length]).attr('stroke-width',1).attr('opacity',0.5);
+        .attr('stroke','#ffffff').attr('stroke-width',0.4).attr('opacity',0.3);
       
       var lh=((nowUtc.getUTCHours()+parseFloat(tz)+24)%24);
       var mm=String(nowUtc.getUTCMinutes()).padStart(2,'0');
@@ -1070,7 +1070,7 @@ function renderTZStrip(){
         g.on('click',function(){ openClusterModal(lista); });
       });
 
-      // Clienti SENZA BACKUP: pallino rosso in basso (altezza Patagonia) con nome
+      // Clienti SENZA BACKUP: layout globale con collision avoidance multi-riga
       var noBackupClients = clienti.filter(function(c) {
         var cl = (c['Stato Backup su Cloud'] || '').toLowerCase().trim();
         var pc = (c['Stato Backup PC1 - PC2'] || '').toLowerCase().trim();
@@ -1088,35 +1088,53 @@ function renderTZStrip(){
         noBackupByTZ[tz].push(c);
       });
 
+      // Raccolta globale ordinata per TZ
+      var allNB = [];
       allTZ.forEach(function(tz, i) {
-        var lista = noBackupByTZ[tz] || [];
-        if (lista.length === 0) return;
-
-        var cx = i * colW + colW / 2;
-        var baseY = H * 0.88; // Altezza Patagonia
-
-        lista.forEach(function(c, j) {
-          var cy = baseY + j * 14; // Offset verticale per ogni cliente
-          
-          var g = svg.append('g').style('cursor', 'pointer');
-          
-          // Pallino rosso piccolo
-          g.append('circle')
-            .attr('cx', cx - 4).attr('cy', cy - 3).attr('r', 3)
-            .attr('fill', '#dc2626').attr('opacity', 0.95);
-          
-          // Nome cliente
-          var nome = (c.Nome || '').substring(0, 15); // Tronca a 15 caratteri
-          g.append('text')
-            .attr('x', cx + 2).attr('y', cy)
-            .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
-            .attr('font-size', 9).attr('fill', '#dc2626').attr('font-weight', '600')
-            .text(nome);
-          
-          // Click per aprire modale - trova l'indice del cliente
-          var clienteIdx = clienti.findIndex(function(cl) { return cl.Nome === c.Nome; });
-          g.on('click', function() { if(clienteIdx >= 0) openModal(clienteIdx); });
+        (noBackupByTZ[tz] || []).forEach(function(c) {
+          allNB.push({ c: c, idealX: i * colW + colW / 2 });
         });
+      });
+
+      // Layout multi-riga: per ogni label cerca la prima riga dove l'idealX non si sovrappone
+      var nbBaseY = H * 0.88;
+      var nbRowH = 13;
+      var nbGap = 3;
+      var nbRows = []; // nbRows[r] = endX dell'ultimo label nella riga r
+
+      allNB.forEach(function(item) {
+        var nome = (item.c.Nome || '').substring(0, 15);
+        var lw = nome.length * 5.8 + 14;
+
+        for (var r = 0; r <= nbRows.length; r++) {
+          var rowEnd = (nbRows[r] !== undefined) ? nbRows[r] : -Infinity;
+          if (rowEnd + nbGap <= item.idealX) {
+            nbRows[r] = item.idealX + lw;
+            item.lx = item.idealX;
+            item.ly = nbBaseY + r * nbRowH;
+            break;
+          }
+        }
+
+        var g = svg.append('g').style('cursor', 'pointer');
+
+        g.append('circle')
+          .attr('cx', item.lx - 4).attr('cy', item.ly - 3).attr('r', 3)
+          .attr('fill', '#dc2626').attr('opacity', 0.95);
+
+        g.append('rect')
+          .attr('x', item.lx + 2).attr('y', item.ly - 9)
+          .attr('width', lw - 4).attr('height', 12)
+          .attr('fill', 'white').attr('rx', 2).attr('opacity', 0.85);
+
+        g.append('text')
+          .attr('x', item.lx + 5).attr('y', item.ly)
+          .attr('text-anchor', 'start').attr('font-family', 'DM Mono,monospace')
+          .attr('font-size', 9).attr('fill', '#dc2626').attr('font-weight', '600')
+          .text(nome);
+
+        var clienteIdx = clienti.findIndex(function(cl) { return cl.Nome === item.c.Nome; });
+        g.on('click', function() { if(clienteIdx >= 0) openModal(clienteIdx); });
       });
 
     }).catch(function(e){ console.warn('Map load failed:',e); });
