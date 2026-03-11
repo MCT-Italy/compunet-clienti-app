@@ -32,14 +32,24 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 <script>
 async function checkPwd(){
   const pwd=document.getElementById('pwd-input').value;
-  const data=new TextEncoder().encode(pwd);
-  const hashBuffer=await crypto.subtle.digest('SHA-256',data);
-  const hashArray=Array.from(new Uint8Array(hashBuffer));
-  const hash=hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
-  if(hash==='9dfd205be78fa9874326e83a5a14e09ecb46fa670e6f889145083eb7e9c85f69'){
+  if(!pwd) return;
+  const errEl=document.getElementById('pwd-error');
+  errEl.style.display='none';
+  const _sb=window.supabase.createClient(
+    "https://disbuelaedpqjyjiglqv.supabase.co",
+    "sb_publishable_PzMqG2ibfB5BK2wQqvay2Q_lr-505lx"
+  );
+  const { data: role, error }=await _sb.rpc('check_app_password',{pwd_input:pwd});
+  if(error){
+    errEl.textContent='Errore di connessione';
+    errEl.style.display='block';
+    return;
+  }
+  if(role){
     document.getElementById('login-screen').style.display='none';
   } else {
-    document.getElementById('pwd-error').style.display='block';
+    errEl.textContent='Password errata';
+    errEl.style.display='block';
     document.getElementById('pwd-input').value='';
     document.getElementById('pwd-input').focus();
   }

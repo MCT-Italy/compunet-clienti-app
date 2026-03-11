@@ -17,25 +17,28 @@
 <script>
 async function checkPassword() {
   const pwd = document.getElementById('pwd-input').value;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(pwd);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hash = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-  if (hash === '19d99c72267c9d1f0ac4dec2d222239b6399c9234caa613feb16bde6d8c43676') {
-    userRole = 'admin';
-    sessionStorage.setItem('cn_role', 'admin');
-    document.getElementById('login-screen').style.display = 'none';
-    if (typeof initSupabase === 'function') initSupabase();
-    else window._autoLogin = true;
-  } else if (hash === '9dfd205be78fa9874326e83a5a14e09ecb46fa670e6f889145083eb7e9c85f69') {
-    userRole = 'viewer';
-    sessionStorage.setItem('cn_role', 'viewer');
+  if (!pwd) return;
+  const errEl = document.getElementById('pwd-error');
+  errEl.style.display = 'none';
+  const _sb = window.supabase.createClient(
+    "https://disbuelaedpqjyjiglqv.supabase.co",
+    "sb_publishable_PzMqG2ibfB5BK2wQqvay2Q_lr-505lx"
+  );
+  const { data: role, error } = await _sb.rpc('check_app_password', { pwd_input: pwd });
+  if (error) {
+    errEl.textContent = 'Errore di connessione';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (role === 'admin' || role === 'viewer') {
+    userRole = role;
+    sessionStorage.setItem('cn_role', role);
     document.getElementById('login-screen').style.display = 'none';
     if (typeof initSupabase === 'function') initSupabase();
     else window._autoLogin = true;
   } else {
-    document.getElementById('pwd-error').style.display = 'block';
+    errEl.textContent = 'Password errata';
+    errEl.style.display = 'block';
     document.getElementById('pwd-input').value = '';
     document.getElementById('pwd-input').focus();
   }
