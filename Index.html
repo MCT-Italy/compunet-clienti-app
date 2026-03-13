@@ -919,9 +919,13 @@ function renderTZStrip(){
 
     // Sfondo fasce giorno/notte
     var colW=W/allTZ.length;
+    var _dayOfYear=Math.floor((nowUtc-new Date(nowUtc.getUTCFullYear(),0,0))/86400000);
+    var _seasonOffset=Math.cos((_dayOfYear-172)*2*Math.PI/365);
+    var _sunrise=6.25-_seasonOffset*1.25;
+    var _sunset=19+_seasonOffset*2;
     allTZ.forEach(function(tz,i){
       var lh=((nowUtc.getUTCHours()+parseFloat(tz)+24)%24);
-      var isDay=(lh>=7&&lh<20);
+      var isDay=(lh>=_sunrise&&lh<_sunset);
       svg.append('rect').attr('x',i*colW).attr('y',0).attr('width',colW).attr('height',H)
         .attr('fill',isDay?'rgba(255,230,80,0.07)':'rgba(0,0,80,0.22)');
     });
