@@ -209,7 +209,11 @@ body.dark .modal-overlay{background:rgba(0,0,0,.65);}
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">&#128269;</span>
-        <input type="text" id="search-input" placeholder="Cerca cliente, contatto, versione..." oninput="filterClienti()">
+        <input type="text" id="search-input" placeholder="Cerca per nome..." oninput="filterClienti()">
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" id="search-fields" placeholder="Cerca in altri campi..." oninput="filterClienti()">
       </div>
       <select id="filter-cloud" onchange="filterClienti()">
         <option value="">Cloud: Tutti</option>
@@ -419,6 +423,7 @@ function gbadge(v){if(!v)return'';if(v==='Standard/Develop')return'<span class="
 
 function resetFilters(){
   document.getElementById('search-input').value='';
+  document.getElementById('search-fields').value='';
   document.getElementById('filter-cloud').value='';
   document.getElementById('filter-scada').value='';
   document.getElementById('filter-flagged').value='';
@@ -427,15 +432,17 @@ function resetFilters(){
 }
 function filterClienti(){
   const q=(document.getElementById('search-input').value||'').toLowerCase();
+  const qf=(document.getElementById('search-fields').value||'').toLowerCase();
   const fc=(document.getElementById('filter-cloud').value||'').toLowerCase();
   const fs=document.getElementById('filter-scada').value;
   const ff=document.getElementById('filter-flagged').value;
-  const anyFilter=q||fc||fs||ff;
+  const anyFilter=q||qf||fc||fs||ff;
   const rb=document.getElementById('btn-reset-filters');
   if(rb) rb.style.display=anyFilter?'inline-flex':'none';
   filteredClienti=clienti.filter(c=>{
     if(!c.Nome)return false;
     if(q&&!(c.Nome||'').toLowerCase().includes(q))return false;
+    if(qf&&![c['Vers. Git'],c['Vers. Grafica SCADA'],c.Contatto,c.Sviluppi,c.Citta,c.User,c['orario attuale']].join(' ').toLowerCase().includes(qf))return false;
     if(fc&&(c['Stato Backup su Cloud']||'').toLowerCase()!==fc)return false;
     if(fs){const sv=(c['Vers. Grafica SCADA']||'').toLowerCase();if(fs==='new'&&sv!=='new')return false;if(fs==='old'&&!sv.includes('old'))return false;if(fs==='personalizzato'&&!sv.includes('personalizzato'))return false;}
     if(ff==='flagged'&&!isFlagged(c))return false;if(ff==='normal'&&isFlagged(c))return false;
